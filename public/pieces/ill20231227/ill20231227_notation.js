@@ -1,7 +1,11 @@
 //#ef NOTES
 /*
-shrink bracket
-position right bracket
+New tempi
+New Loops
+Accelerating Tempo/Loop Cursor
+For accel increase pxPerFrame for each frame in tempoConsts.pxPerFrame have a accel factor
+in func calcTimeline increase here:       let tCurPx = Math.round(frmIx * tempoObj.pxPerFrame);
+
 */
 //#endef NOTES
 
@@ -21,7 +25,7 @@ let panelTitle = "Interactive Looping Line 20231227"
 //just draw several times 1 for each line and move it over
 //105 pixels per beat; 42 beats; 4410 x 109
 //9 beats per line; 945 pixels per line
-const NOTATION_FILE_NAME = 'ILL20231227_SVG.svg';
+const NOTATION_FILE_NAME_PATH = '/pieces/ill20231227/notationSVGs/ILL20231227_SVG.svg';
 const PX_PER_BEAT = 105;
 const BEATS_PER_LINE = 9;
 const WHOLE_NOTATION_W = 4410;
@@ -36,10 +40,12 @@ const TOTAL_NUM_PX_IN_SCORE = NOTATION_LINE_LENGTH * NUM_NOTATION_LINES;
 WORLD_W = NOTATION_LINE_LENGTH;
 WORLD_H = (NOTATION_H * NUM_NOTATION_LINES) + (GAP_BTWN_NOTATION_LINES * (NUM_NOTATION_LINES - 1));
 //Tempo Timing
-let tempos = [60, 37.14, 96.92, 32.3, 86.67];
+let tempos = [[60,1], [37.14, 1], [96.92, 0.77], [32.3,3.15], [86.67,1]];
 let totalNumFramesPerTempo = [];
 let tempoConsts = [];
-tempos.forEach((tempo, i) => {
+tempos.forEach((tempoArr, i) => {
+  let tempo = tempoArr[0];
+  let accel_decelFactor = tempoArr[1];
   let td = {};
   td['bpm'] = tempo;
   let bps = tempo / 60;
@@ -51,6 +57,7 @@ tempos.forEach((tempo, i) => {
   let pxPerFrame = PX_PER_BEAT / framesPerBeat;
   td['pxPerFrame'] = pxPerFrame;
   td['framesPerLine'] = framesPerBeat * BEATS_PER_LINE;
+  td['adcel'] = accel_decelFactor;
   tempoConsts.push(td);
 });
 //Beat Lines
@@ -134,6 +141,7 @@ function calcTimeline() {
   //Number of frames in score
   tempoConsts.forEach((tempoObj, tempoIx) => { //run for each tempo
     let tNumFrames = Math.round(tempoObj.numFramesInPiece); //create an array with and index for each frame in the piece
+    let adcelFactor = tempoObj.adcel;
     let tFrmsPerLine = tempoObj.framesPerLine;
     let frameArray = [];
     for (var frmIx = 0; frmIx < tNumFrames; frmIx++) { //loop for each frame in the piece
@@ -296,7 +304,7 @@ function drawNotation() {
   for (var i = 0; i < NUM_NOTATION_LINES; i++) {
     //Notation
     let tSvgImage = document.createElementNS(SVG_NS, "image");
-    tSvgImage.setAttributeNS(XLINK_NS, 'xlink:href', '/pieces/ill20231216/notationSVGs/' + NOTATION_FILE_NAME);
+    tSvgImage.setAttributeNS(XLINK_NS, 'xlink:href', NOTATION_FILE_NAME_PATH);
     tSvgImage.setAttributeNS(null, "y", i * (NOTATION_H + GAP_BTWN_NOTATION_LINES));
     tSvgImage.setAttributeNS(null, "x", i * -NOTATION_LINE_LENGTH);
     tSvgImage.setAttributeNS(null, "visibility", 'visible');

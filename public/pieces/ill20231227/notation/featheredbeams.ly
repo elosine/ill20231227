@@ -79,7 +79,7 @@
         
         
         \override Beam.grow-direction = #RIGHT
-        \featherDurations #(ly:make-moment 4/5) { e'16 [ e' e' e' e' e' e' e' e' e' e' e'  ] } %3 beats accel
+        \featherDurations #(ly:make-moment 4/5) { e'32 [ e' e' e' e' e' e' e' e' e' e' e'  ] } %3 beats accel
        %4/5
        
        

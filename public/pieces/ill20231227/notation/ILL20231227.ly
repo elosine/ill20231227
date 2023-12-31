@@ -9,16 +9,15 @@
 
 \paper
 {
-  paper-width = 1800 %50px per beat +1 for last beat marking border 
-  paper-height = 100
+  paper-width = 1850 %50px per beat +1 for last beat marking border 
+  paper-height = 150
 
   top-margin = 0
   bottom-margin = 0
   left-margin = 0
   right-margin = 0
   
-  system-system-spacing =
-  #'((basic-distance . 15)  %this controls space between lines default = 12
+  system-system-spacing = #'((basic-distance . 15)  %this controls space between lines default = 12
                             (minimum-distance . 8)
                             (padding . 1)
                             (stretchability . 60)) 
@@ -59,8 +58,8 @@
         \set tupletFullLength = ##t %http://lilypond.org/doc/v2.19/Documentation/snippets/rhythms
         \override NoteHead.font-size = #-2
         \override DynamicText.font-size = #-2
-        \override Stem.details.beamed-lengths = #'(7)
-        \override Stem.details.lengths = #'(7)
+        \override Stem.details.beamed-lengths = #'(11)
+        \override Stem.details.lengths = #'(11)
         % \override NoteColumn.accent-skip = ##t
         \override Accidental.font-size = -2 
         \override Stem.direction = #up
@@ -72,39 +71,74 @@
         
         %%%%%%% SCORE BEGINS HERE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         \tempo 4 = 60
-        \time 36/4
-        
-        
-        
-        
-        \override Beam.grow-direction = #RIGHT
-        \featherDurations #(ly:make-moment 4/5) { e'16 [ e' e' e' e' e' e' e' e' e' e' e'  ] } %3 beats accel
+        \time 37/4
         
         r4 r4
         
-          \grace  {  
+        
+        % 3-Beat Acceleration
+        \once \override Beam.grow-direction = #RIGHT
+        \featherDurations #(ly:make-moment 4/5) { e'16 [ e' e' e' e' e' e' e' e' e' e' e'  ] } %3 beats accel
+
+        
+        r4 r4
+        
+        % 1/8 Grace Notes Before Attack
+        \grace  {  
           \override NoteHead.font-size = #-8
           [ e''32  <d'' f''>  <c'' e'' g''>   <b' d'' f'' a''>    <a' c'' e'' g'' b''>      <b' d'' f'' a''>    <c'' e'' g''>   <d'' f''>   e''   ] 
         }
         \override NoteHead.font-size = #-2
         \once \override Stem.direction = #down
         e''8 -^  r8
-       
-         
-        \override Beam.grow-direction = #LEFT
+        
+        r4
+        
+        % 2-Beat Deceleration 
+        \once \override Beam.grow-direction = #LEFT
         \featherDurations #(ly:make-moment 5/4 ) { e'16 [ e' e' e' e' e' e'e' ] } %2 beats DECEL
-        \override Beam.grow-direction = #'()
 
+        r4 r4
        
-       r4 r4
-       
+        % 5:1 Tuplet
         \once \override TupletNumber #'text = "5:1"
         \tuplet 5/4 {[ r16 b' e'' f' c' ]}
        
-       
+        % 4-Beat Acceleration
+        \once \override Beam.grow-direction = #RIGHT
+        \featherDurations #(ly:make-moment 11/15) { e'8 [ e' e' e' e' e' e' e' ] } %4 beats accel  
+      
+        r4 r4
         
-        \override Beam.grow-direction = #RIGHT
-        \featherDurations #(ly:make-moment 3/4) { e'16 [ e' e' e' e' e' e' e' e' e' e' e' e' e' e' e' ] } %4 beats accel
+        % 1/4 Grace Notes Before Attack
+        \hideNotes e''4 \unHideNotes
+        \grace  {  
+          \override NoteHead.font-size = #-8
+          [ e''32 <d'' f''>   <c'' e'' g''>   <b' d'' f'' a''>    <a' c'' e'' g'' b''>  <g' b' d'' f'' a'' c''' >       <f' a' c'' e'' g'' b'' d'''>    <e' g' b' d'' f'' a'' c''' e''' >    <d' f' a' c'' e'' g'' b'' d''' f'''>   <c' e' g' b' d'' f'' a'' c''' e''' g''' >     <d' f' a' c'' e'' g'' b'' d''' f'''>    <e' g' b' d'' f'' a'' c''' e''' >   <f' a' c'' e'' g'' b'' d'''>       <g' b' d'' f'' a'' c''' >  <a' c'' e'' g'' b''>  <b' d'' f'' a''>  <c'' e'' g''>   <d'' f''>  e''   ] 
+        }
+        \override NoteHead.font-size = #-2
+        \once \override Stem.direction = #down
+        e''8 -^  r8
+        
+        
+        e''2
+        
+        a''8 a''8
+        
+        f'4
+        
+        g16 g g g
+        
+        c'''2
+        
+        % 7:2 Tuplet
+        \once \override TupletNumber #'text = "7:2"
+        \tuplet 7/8 { e''16 [ e'' e'' e'' e'' e'' e'' ] }
+       
+        % 5-Beat Acceleration
+        \once \override Beam.grow-direction = #RIGHT
+        \featherDurations #(ly:make-moment 9/12) { e'8 [ e' e' e' e' e' e' e' e' e' ] } %4 beats accel  
+      
       
        
         %extra note for right border in Inkscape/SVG
@@ -136,7 +170,7 @@
       }
 
       indent = 0
-      line-width = 1800 %50px per beat +1 for last beat marking border
+      line-width = 1850 %50px per beat +1 for last beat marking border
       #(layout-set-staff-size 33) %staff height
       % \hide Stem
       %\hide NoteHead
