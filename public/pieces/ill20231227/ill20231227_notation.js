@@ -40,7 +40,13 @@ const TOTAL_NUM_PX_IN_SCORE = NOTATION_LINE_LENGTH * NUM_NOTATION_LINES;
 WORLD_W = NOTATION_LINE_LENGTH;
 WORLD_H = (NOTATION_H * NUM_NOTATION_LINES) + (GAP_BTWN_NOTATION_LINES * (NUM_NOTATION_LINES - 1));
 //Tempo Timing
-let tempos = [[60,1], [37.14, 1], [96.92, 0.77], [32.3,3.15], [86.67,1]];
+let tempos = [
+  [60, 0],
+  [37.14, 0],
+  [96.92, 0.77],
+  [32.3, 2.15],
+  [86.67, 0]
+];
 let totalNumFramesPerTempo = [];
 let tempoConsts = [];
 tempos.forEach((tempoArr, i) => {
@@ -57,7 +63,7 @@ tempos.forEach((tempoArr, i) => {
   let pxPerFrame = PX_PER_BEAT / framesPerBeat;
   td['pxPerFrame'] = pxPerFrame;
   td['framesPerLine'] = framesPerBeat * BEATS_PER_LINE;
-  td['adcel'] = accel_decelFactor;
+  td['adcel'] = ((accel_decelFactor * pxPerFrame) - pxPerFrame) / numFramesInPiece;
   tempoConsts.push(td);
 });
 //Beat Lines
@@ -141,12 +147,12 @@ function calcTimeline() {
   //Number of frames in score
   tempoConsts.forEach((tempoObj, tempoIx) => { //run for each tempo
     let tNumFrames = Math.round(tempoObj.numFramesInPiece); //create an array with and index for each frame in the piece
-    let adcelFactor = tempoObj.adcel;
     let tFrmsPerLine = tempoObj.framesPerLine;
+    let adcelFactor = tempoObj.adcel;
     let frameArray = [];
     for (var frmIx = 0; frmIx < tNumFrames; frmIx++) { //loop for each frame in the piece
       let td = {};
-      let tCurPx = Math.round(frmIx * tempoObj.pxPerFrame);
+      let tCurPx = Math.round( (frmIx * tempoObj.pxPerFrame) + (frmIx*adcelFactor) );
       let tx = tCurPx % NOTATION_LINE_LENGTH; //calculate cursor x location at each frame for this tempo
       td['x'] = tx;
       //Calc BBy
