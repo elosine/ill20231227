@@ -1,5 +1,9 @@
 //#ef NOTES
 /*
+Write new timeline function, that calculates the number of pixels traveled for each frame
+D = (initialVelocity * time) + ((acceleration * timeSquared )/2 )
+
+Redo Calculate timelines and build frame Array; accel by alterating tempo
 New tempi
 New Loops
 Accelerating Tempo/Loop Cursor
@@ -41,15 +45,21 @@ WORLD_W = NOTATION_LINE_LENGTH;
 WORLD_H = (NOTATION_H * NUM_NOTATION_LINES) + (GAP_BTWN_NOTATION_LINES * (NUM_NOTATION_LINES - 1));
 //Tempo Timing
 let tempos = [
-  [60, 0],
-  [37.14, 0],
-  [96.92, 0.77],
-  [32.3, 2.15],
-  [86.67, 0]
+  [60, 60],
+  [37.14, 37.14],
+  [96.92, 72],
+  [32.3, 66],
+  [86.67, 86.67]
 ];
 let totalNumFramesPerTempo = [];
 let tempoConsts = [];
 tempos.forEach((tempoArr, i) => {
+  //convert initial and final tempi from bpm to pixelsPerFrame
+  let iTempo = tempoArr[0]; //bpm
+  let fTempo = tempoArr[1]; //bpm
+  // convert bpm to pxPerFrame: pxPerMinute = iTempo * PX_PER_BEAT; pxPerSec = pxPerMinute/60; pxPerFrame = pxPerSec/FRAMERATE
+  let iTempoPxPerFrame = ((iTempo*PX_PER_BEAT)/60)/FRAMERATE;
+  let fTempoPxPerFrame = ((fTempo*PX_PER_BEAT)/60)/FRAMERATE;
   let tempo = tempoArr[0];
   let accel_decelFactor = tempoArr[1];
   let td = {};
@@ -143,6 +153,12 @@ descentPlot.forEach((y) => {
 //##endef Calculate BBs
 
 //#ef Calculate Timelines
+function calcFrameClock() {
+  tempoConsts.forEach((tempoObj, tempoIx) => { //run for each tempo
+    //Increase by a percentage each frame?
+  });
+}
+
 function calcTimeline() {
   //Number of frames in score
   tempoConsts.forEach((tempoObj, tempoIx) => { //run for each tempo
@@ -152,7 +168,7 @@ function calcTimeline() {
     let frameArray = [];
     for (var frmIx = 0; frmIx < tNumFrames; frmIx++) { //loop for each frame in the piece
       let td = {};
-      let tCurPx = Math.round( (frmIx * tempoObj.pxPerFrame) + (frmIx*adcelFactor) );
+      let tCurPx = Math.round((frmIx * tempoObj.pxPerFrame) + (frmIx * adcelFactor));
       let tx = tCurPx % NOTATION_LINE_LENGTH; //calculate cursor x location at each frame for this tempo
       td['x'] = tx;
       //Calc BBy
