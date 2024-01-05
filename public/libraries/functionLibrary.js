@@ -987,6 +987,20 @@ let mkSvgText = function({
   svgContainer.appendChild(svgText);
   return svgText;
 }
+//Usage
+// let tTxt = mkSvgText({
+//   svgContainer: canvas.svg,
+//   x: 25,
+//   y: 25,
+//   fill: 'black',
+//   stroke: 'white',
+//   strokeW: 0,
+//   justifyH: 'start',
+//   justifyV: 'auto',
+//   fontSz: 18,
+//   fontFamily: 'lato',
+//   txt: '007'
+// });
 // #endef END mkSvgText
 
 // #ef mkSvgDiamond
@@ -1535,12 +1549,12 @@ let cycleThroughSet_palindrome = function(ogSet, numCycles) {
 //#endef Cycle Through Set Functions
 
 //#ef conditionalChoose
-let conditionalChoose = function(cSet, condition){
+let conditionalChoose = function(cSet, condition) {
 
   let setToReturn = [];
 
-  for(let i=0;i<cSet.length;i++){
-    if(cSet[i]==condition){
+  for (let i = 0; i < cSet.length; i++) {
+    if (cSet[i] == condition) {
       setToReturn.push(cSet[i]);
     }
   }
@@ -1550,7 +1564,7 @@ let conditionalChoose = function(cSet, condition){
 //#endef conditionalChoose
 
 //#ef pad
-let pad = function (num, size) {
+let pad = function(num, size) {
   let s = "000000000" + num;
   return s.substr(s.length - size);
 }

@@ -1,5 +1,11 @@
 //#ef NOTES
 /*
+Add 'A' or 'D' above accelerating or decelerating cursors
+Work on ictus
+
+which frame does a beat start on?
+
+
 Write new timeline function, that calculates the number of pixels traveled for each frame
 D = (initialVelocity * time) + ((acceleration * timeSquared )/2 )
 
@@ -29,7 +35,8 @@ let panelTitle = "Interactive Looping Line 20231227"
 //just draw several times 1 for each line and move it over
 //105 pixels per beat; 42 beats; 4410 x 109
 //9 beats per line; 945 pixels per line
-const NOTATION_FILE_NAME_PATH = '/pieces/ill20231227/notationSVGs/ILL20231227_SVG.svg';
+const NOTATION_FILE_NAME_PATH = '/pieces/ill20231227/notationSVGs/';
+const NOTATION_FILE_NAME = 'ILL20231227_SVG.svg';
 const PX_PER_BEAT = 105;
 const BEATS_PER_LINE = 9;
 const WHOLE_NOTATION_W = 4410;
@@ -39,80 +46,95 @@ const VERT_DISTANCE_BETWEEN_LINES = NOTATION_H + GAP_BTWN_NOTATION_LINES;
 const NOTATION_TOTAL_BEATS = 42; //cut off a few measures for long note but keep 42 for pixels per beat
 const NUM_NOTATION_LINES = 4;
 const NUM_BEATS_IN_PIECE = 36;
-const NOTATION_LINE_LENGTH = BEATS_PER_LINE * PX_PER_BEAT;
-const TOTAL_NUM_PX_IN_SCORE = NOTATION_LINE_LENGTH * NUM_NOTATION_LINES;
-WORLD_W = NOTATION_LINE_LENGTH;
+const NOTATION_LINE_LENGTH_PX = BEATS_PER_LINE * PX_PER_BEAT;
+const TOTAL_NUM_PX_IN_SCORE = NOTATION_LINE_LENGTH_PX * NUM_NOTATION_LINES;
+WORLD_W = NOTATION_LINE_LENGTH_PX;
 WORLD_H = (NOTATION_H * NUM_NOTATION_LINES) + (GAP_BTWN_NOTATION_LINES * (NUM_NOTATION_LINES - 1));
 //Tempo Timing
 let tempos = [
-  [60, 60],
-  [37.14, 37.14],
-  [96.92, 72],
-  [32.3, 66],
-  [86.67, 86.67]
+  [60, 60, ''],
+  [37.14, 37.14, ''],
+  [96.92, 37.14, 'd'],
+  [32.3, 86.67, 'a'],
+  [86.67, 86.67, '']
 ];
 let totalNumFramesPerTempo = [];
 let tempoConsts = [];
 tempos.forEach((tempoArr, i) => {
+  let td = {};
   //convert initial and final tempi from bpm to pixelsPerFrame
   let iTempo = tempoArr[0]; //bpm
   let fTempo = tempoArr[1]; //bpm
+  td['iTempoBPM'] = iTempo;
+  td['fTempoBPM'] = fTempo;
   // convert bpm to pxPerFrame: pxPerMinute = iTempo * PX_PER_BEAT; pxPerSec = pxPerMinute/60; pxPerFrame = pxPerSec/FRAMERATE
-  let iTempoPxPerFrame = ((iTempo*PX_PER_BEAT)/60)/FRAMERATE;
-  let fTempoPxPerFrame = ((fTempo*PX_PER_BEAT)/60)/FRAMERATE;
-  let tempo = tempoArr[0];
-  let accel_decelFactor = tempoArr[1];
-  let td = {};
-  td['bpm'] = tempo;
-  let bps = tempo / 60;
-  td['bps'] = bps;
-  let framesPerBeat = FRAMERATE / bps;
-  td['framesPerBeat'] = framesPerBeat;
-  let numFramesInPiece = NUM_BEATS_IN_PIECE * framesPerBeat;
-  td['numFramesInPiece'] = numFramesInPiece;
-  let pxPerFrame = PX_PER_BEAT / framesPerBeat;
-  td['pxPerFrame'] = pxPerFrame;
-  td['framesPerLine'] = framesPerBeat * BEATS_PER_LINE;
-  td['adcel'] = ((accel_decelFactor * pxPerFrame) - pxPerFrame) / numFramesInPiece;
+  let iTempoPxPerFrame = ((iTempo * PX_PER_BEAT) / 60) / FRAMERATE;
+  let fTempoPxPerFrame = ((fTempo * PX_PER_BEAT) / 60) / FRAMERATE;
+  td['iTempoPxPerFrame'] = iTempoPxPerFrame;
+  td['fTempoPxPerFrame'] = fTempoPxPerFrame;
+  //calc acceleration from initial tempo and final tempo
+  // a = (v2 - u2) / 2s ; v=finalVelocity, u=initialVelocity, s=totalDistance
+  let tAccel = (Math.pow(fTempoPxPerFrame, 2) - Math.pow(iTempoPxPerFrame, 2)) / (2 * TOTAL_NUM_PX_IN_SCORE);
+  // console.log('tempo ' + i + ' acceleration: ' + tAccel);
+  td['accel'] = tAccel;
+  // Calculate total number of frames from acceleration and distance
+  // t = sqrRoot( (2L/a) ) ; L is total pixels
+  let totalDurFrames;
+  if (tAccel == 0) {
+    totalDurFrames = Math.round(TOTAL_NUM_PX_IN_SCORE / iTempoPxPerFrame);
+  } else {
+    totalDurFrames = Math.round((fTempoPxPerFrame - iTempoPxPerFrame) / tAccel);
+  }
+  // console.log('Total Frames, tempo ' + i + ' : ' + totalDurFrames);
+  td['totalDurFrames'] = totalDurFrames;
   tempoConsts.push(td);
 });
 //Beat Lines
 let beatLines = [];
 //Scrolling Cursors
 let scrollingCursors = [];
-let scrollingCsrY1 = 13;
-let scrollingCsrH = 57;
+let scrCsrText = [];
+let scrollingCsrY1 = 30;
+let scrollingCsrH = 65;
 let scrollingCsrClrs = [];
+let lineY = [];
+for (var i = 0; i < NUM_NOTATION_LINES; i++) {
+  let ty = scrollingCsrY1 + ((NOTATION_H + GAP_BTWN_NOTATION_LINES) * i);
+  lineY.push(ty);
+}
 tempos.forEach((tempo, tix) => {
   scrollingCsrClrs.push(TEMPO_COLORS[tix % TEMPO_COLORS.length]);
 });
 //Loops
 let totalNumFramesPerLoop = [];
 let loops = [{
-  beatA: 2,
-  beatB: 5,
-  tempoIx: 0,
-  initY: scrollingCsrY1
-}, {
-  beatA: 20,
-  beatB: 22,
-  tempoIx: 4,
-  initY: scrollingCsrY1 + NOTATION_H + GAP_BTWN_NOTATION_LINES
-}, {
-  beatA: 9,
-  beatB: 12,
-  tempoIx: 2,
-  initY: scrollingCsrY1 + NOTATION_H + GAP_BTWN_NOTATION_LINES
-}, {
-  beatA: 20,
-  beatB: 23,
-  tempoIx: 3,
-  initY: scrollingCsrY1 + ((NOTATION_H + GAP_BTWN_NOTATION_LINES) * 2)
-}];
+    beatA: 6,
+    beatB: 12,
+    tempoIx: 2,
+    leftY: lineY[0],
+    rightY: lineY[1]
+  }, {
+    beatA: 14,
+    beatB: 23,
+    tempoIx: 4,
+    leftY: lineY[1],
+    rightY: lineY[2]
+  },
+  {
+    beatA: 28,
+    beatB: 35.98,
+    tempoIx: 3,
+    leftY: lineY[3],
+    rightY: lineY[3]
+  }, {
+    beatA: 24,
+    beatB: 27,
+    tempoIx: 3,
+    leftY: lineY[2],
+    rightY: lineY[2]
+  }
+];
 loops.forEach((loopObj, loopIx) => {
-  let tNumBeats = loopObj.beatB - loopObj.beatA;
-  let tFramesPerLoop = Math.round(tempoConsts[loopObj.tempoIx].framesPerBeat * tNumBeats);
-  loops[loopIx]['numFrames'] = tFramesPerLoop;
   let tLenPx = (loopObj.beatB - loopObj.beatA) * PX_PER_BEAT;
   loops[loopIx]['lenPx'] = tLenPx;
   let tpixa = (loopObj.beatA % BEATS_PER_LINE) * PX_PER_BEAT;
@@ -120,6 +142,7 @@ loops.forEach((loopObj, loopIx) => {
 });
 let loopCursors = [];
 let loopBbs = [];
+let loopsFrameArray = [];
 //BBs
 let BB_RADIUS = 4;
 let bbs = [];
@@ -132,12 +155,15 @@ const TS = timesync.create({
 
 //##ef Calculate Ascent and Descent for 1 BB
 let bbOneBeat = [];
-let descentPct = 0.6;
+// let descentPct = 0.6;
+let descentPct = 0.8;
 let ascentPct = 1 - descentPct;
 let ascentNumXpx = Math.ceil(ascentPct * PX_PER_BEAT);
 let descentNumXpx = Math.floor(descentPct * PX_PER_BEAT);
-let ascentFactor = 0.45;
-let descentFactor = 2.9;
+// let ascentFactor = 0.45;
+let ascentFactor = 0.15;
+// let descentFactor = 2.9;
+let descentFactor = 5;
 let ascentPlot = plot(function(x) { //see Function library; exponential curve
   return Math.pow(x, ascentFactor);
 }, [0, 1, 0, 1], ascentNumXpx, scrollingCsrH, scrollingCsrY1);
@@ -153,35 +179,29 @@ descentPlot.forEach((y) => {
 //##endef Calculate BBs
 
 //#ef Calculate Timelines
-function calcFrameClock() {
-  tempoConsts.forEach((tempoObj, tempoIx) => { //run for each tempo
-    //Increase by a percentage each frame?
-  });
-}
-
 function calcTimeline() {
-  //Number of frames in score
   tempoConsts.forEach((tempoObj, tempoIx) => { //run for each tempo
-    let tNumFrames = Math.round(tempoObj.numFramesInPiece); //create an array with and index for each frame in the piece
-    let tFrmsPerLine = tempoObj.framesPerLine;
-    let adcelFactor = tempoObj.adcel;
     let frameArray = [];
+    let tNumFrames = Math.round(tempoObj.totalDurFrames); //create an array with and index for each frame in the piece per tempo
     for (var frmIx = 0; frmIx < tNumFrames; frmIx++) { //loop for each frame in the piece
-      let td = {};
-      let tCurPx = Math.round((frmIx * tempoObj.pxPerFrame) + (frmIx * adcelFactor));
-      let tx = tCurPx % NOTATION_LINE_LENGTH; //calculate cursor x location at each frame for this tempo
+      let td = {}; //dictionary to hold position values
+      //Calculate x
+      let tCurPx = Math.round((tempoObj.iTempoPxPerFrame * frmIx) + ((tempoObj.accel * Math.pow(frmIx, 2)) / 2));
+      td['absX'] = tCurPx;
+      // console.log(tCurPx);
+      let tx = tCurPx % NOTATION_LINE_LENGTH_PX; //calculate cursor x location at each frame for this tempo
       td['x'] = tx;
       //Calc BBy
       let tBbX = tCurPx % Math.round(PX_PER_BEAT);
       let tBbY = bbOneBeat[tBbX].y;
       //Calc Y pos
       let ty;
-      if (frmIx < tFrmsPerLine) {
+      if (tCurPx < NOTATION_LINE_LENGTH_PX) {
         ty = scrollingCsrY1;
-      } else if (frmIx >= tFrmsPerLine && frmIx < (tFrmsPerLine * 2)) {
+      } else if (tCurPx >= NOTATION_LINE_LENGTH_PX && tCurPx < (NOTATION_LINE_LENGTH_PX * 2)) {
         ty = scrollingCsrY1 + NOTATION_H + GAP_BTWN_NOTATION_LINES;
         tBbY = tBbY + NOTATION_H + GAP_BTWN_NOTATION_LINES;
-      } else if (frmIx >= (tFrmsPerLine * 2) && frmIx < (tFrmsPerLine * 3)) {
+      } else if (tCurPx >= (NOTATION_LINE_LENGTH_PX * 2) && tCurPx < (NOTATION_LINE_LENGTH_PX * 3)) {
         ty = scrollingCsrY1 + ((NOTATION_H + GAP_BTWN_NOTATION_LINES) * 2);
         tBbY = tBbY + ((NOTATION_H + GAP_BTWN_NOTATION_LINES) * 2);
       } else {
@@ -199,37 +219,47 @@ function calcTimeline() {
 //#endef Calculate Timelines
 
 //#ef Calculate Loops
-function calcLoops() {
-  loops.forEach((loopObj, loopIx) => {
-    let tTempoIx = loopObj.tempoIx;
-    let tNumFrames = loopObj.numFrames;
-    let frameArray = [];
+function calcLoopsData() {
+  for (let loopIx = 0; loopIx < loops.length; loopIx++) {
+    let tLoopObj = loops[loopIx];
+    //Which pixel does the first beat of loop occur on?
+    let tBeatApx = tLoopObj.beatA * PX_PER_BEAT;
+    let tBeatBpx = tLoopObj.beatB * PX_PER_BEAT;
+    // find the frame this pixel is in for the assigned tempo
+    let tB1Frame, tB2Frame;
+    for (let frmIx = 1; frmIx < tempoConsts[tLoopObj.tempoIx].frameArray.length; frmIx++) {
+      let tThisX = tempoConsts[tLoopObj.tempoIx].frameArray[frmIx].absX;
+      let tLastX = tempoConsts[tLoopObj.tempoIx].frameArray[frmIx - 1].absX;
+      if (tBeatApx >= tLastX && tBeatApx < tThisX) {
+        tB1Frame = frmIx - 1;
+        loops[loopIx]['frameA'] = tB1Frame;
+      }
+      if (tBeatBpx >= tLastX && tBeatBpx < tThisX) {
+        tB2Frame = frmIx - 1;
+        loops[loopIx]['frameB'] = tB2Frame;
+      }
+    }
+    let tNumFramesInLoop = tB2Frame - tB1Frame;
+    loops[loopIx]['numFrames'] = tNumFramesInLoop;
+    totalNumFramesPerLoop.push(tNumFramesInLoop);
+  }
 
+}
+
+function calcLoopsFrameArray() {
+  loops.forEach((lpObj, lpIx) => {
+    let tempoFrameArray = tempoConsts[lpObj.tempoIx].frameArray;
+    let tNumFrames = lpObj.numFrames;
+    let tfrmArray = [];
     for (var frmIx = 0; frmIx < tNumFrames; frmIx++) {
       let td = {};
-      let tCurPx = Math.round(frmIx * tempoConsts[tTempoIx].pxPerFrame);
-      let tx = (tCurPx + loopObj.beatApxX) % NOTATION_LINE_LENGTH;
-      td['x'] = tx;
-      //Calc BBy
-      let tBbX = tCurPx % Math.round(PX_PER_BEAT);
-      let tBbY = bbOneBeat[tBbX].y + loopObj.initY - scrollingCsrY1;
-      //Calc Y pos
-
-      let ty;
-      if ((tCurPx % loopObj.lenPx) + loopObj.beatApxX < NOTATION_LINE_LENGTH) {
-        ty = loopObj.initY;
-      } else {
-        ty = loopObj.initY + NOTATION_H + GAP_BTWN_NOTATION_LINES;
-        tBbY = tBbY + NOTATION_H + GAP_BTWN_NOTATION_LINES;
-      }
-      td['y'] = ty;
-      td['bby'] = tBbY;
-      frameArray.push(td);
-
+      let tIx = frmIx + lpObj.frameA;
+      td['x'] = tempoFrameArray[tIx].x;
+      td['y'] = tempoFrameArray[tIx].y;
+      td['bby'] = tempoFrameArray[tIx].bby;
+      tfrmArray.push(td);
     }
-    loops[loopIx]['frameArray'] = frameArray;
-    totalNumFramesPerLoop.push(frameArray.length);
-
+    loopsFrameArray.push(tfrmArray);
   });
 }
 //#endef Calculate Loops
@@ -272,13 +302,14 @@ function update() {
 function init() { //runs from html file: ill20231212.html <body onload='init();'></body>
   makeCanvas();
   drawNotation();
-  makeLoopBrackets();
   makeLoopCursors();
   makeScrollingCursors();
   makeBbs();
   makeLoopBbs();
   calcTimeline();
-  calcLoops();
+  calcLoopsData();
+  calcLoopsFrameArray();
+  makeLoopBrackets();
   //Initialize clock and start animation engine
   let ts_Date = new Date(TS.now()); //Date stamp object from TimeSync library
   let tsNowEpochTime_MS = ts_Date.getTime(); //current time at init in Epoch Time MS
@@ -326,9 +357,9 @@ function drawNotation() {
   for (var i = 0; i < NUM_NOTATION_LINES; i++) {
     //Notation
     let tSvgImage = document.createElementNS(SVG_NS, "image");
-    tSvgImage.setAttributeNS(XLINK_NS, 'xlink:href', NOTATION_FILE_NAME_PATH);
+    tSvgImage.setAttributeNS(XLINK_NS, 'xlink:href', NOTATION_FILE_NAME_PATH + NOTATION_FILE_NAME);
     tSvgImage.setAttributeNS(null, "y", i * (NOTATION_H + GAP_BTWN_NOTATION_LINES));
-    tSvgImage.setAttributeNS(null, "x", i * -NOTATION_LINE_LENGTH);
+    tSvgImage.setAttributeNS(null, "x", i * -NOTATION_LINE_LENGTH_PX);
     tSvgImage.setAttributeNS(null, "visibility", 'visible');
     tSvgImage.setAttributeNS(null, "display", 'yes');
     canvas.svg.appendChild(tSvgImage);
@@ -366,6 +397,21 @@ function makeScrollingCursors() {
     tCsr.setAttributeNS(null, 'stroke-linecap', 'round');
     tCsr.setAttributeNS(null, 'display', 'yes');
     scrollingCursors.push(tCsr);
+    //Cursor Text
+    let tTxt = mkSvgText({
+      svgContainer: canvas.svg,
+      x: 0,
+      y: scrollingCsrY1,
+      fill: scrollingCsrClrs[i],
+      stroke: scrollingCsrClrs[i],
+      strokeW: 1,
+      justifyH: 'start',
+      justifyV: 'auto',
+      fontSz: 18,
+      fontFamily: 'lato',
+      txt: tempos[i][2]
+    });
+    scrCsrText.push(tTxt);
   }
 }
 
@@ -391,6 +437,8 @@ function updateScrollingCsrs(frame, tempoIx) {
   scrollingCursors[tempoIx].setAttributeNS(null, 'x2', tx);
   scrollingCursors[tempoIx].setAttributeNS(null, 'y1', ty);
   scrollingCursors[tempoIx].setAttributeNS(null, 'y2', ty + scrollingCsrH);
+  scrCsrText[tempoIx].setAttributeNS(null, 'x', tx-5);
+  scrCsrText[tempoIx].setAttributeNS(null, 'y', ty-2);
 }
 
 function updateBbs(frame, tempoIx) {
@@ -410,7 +458,7 @@ function makeLoopCursors() {
       y1: scrollingCsrY1,
       x2: 0,
       y2: scrollingCsrY1 + scrollingCsrH,
-      stroke: 'yellow',
+      stroke: clr_neonMagenta,
       strokeW: 3
     });
     tCsr.setAttributeNS(null, 'stroke-linecap', 'round');
@@ -426,7 +474,7 @@ function makeLoopBbs() {
       cx: 0,
       cy: 0,
       r: BB_RADIUS,
-      fill: 'yellow',
+      fill: clr_neonMagenta,
       stroke: 'white',
       strokeW: 0
     });
@@ -435,18 +483,22 @@ function makeLoopBbs() {
 }
 
 function makeLoopBrackets() {
-  loops.forEach((loopObj, loopIx) => {
+  loopsFrameArray.forEach((loopObj, loopIx) => {
+    let ty1 = loopObj[0].y;
+    let tx1 = loopObj[0].x;
     let tSvgImage = document.createElementNS(SVG_NS, "image");
-    tSvgImage.setAttributeNS(XLINK_NS, 'xlink:href', '/pieces/ill20231216/notationSVGs/leftBracket.svg');
-    tSvgImage.setAttributeNS(null, "y", loopObj.initY - 13);
-    tSvgImage.setAttributeNS(null, "x", loopObj.beatApxX);
+    tSvgImage.setAttributeNS(XLINK_NS, 'xlink:href', NOTATION_FILE_NAME_PATH + 'leftBracket.svg');
+    tSvgImage.setAttributeNS(null, "y", ty1 - 15);
+    tSvgImage.setAttributeNS(null, "x", tx1 - 2);
     tSvgImage.setAttributeNS(null, "visibility", 'visible');
     tSvgImage.setAttributeNS(null, "display", 'yes');
     canvas.svg.appendChild(tSvgImage);
+    let ty2 = loopObj[loopObj.length - 1].y;
+    let tx2 = loopObj[loopObj.length - 1].x;
     let tSvgImageR = document.createElementNS(SVG_NS, "image");
-    tSvgImageR.setAttributeNS(XLINK_NS, 'xlink:href', '/pieces/ill20231216/notationSVGs/rightBracket.svg');
-    tSvgImageR.setAttributeNS(null, "y", loopObj.initY - 13);
-    tSvgImageR.setAttributeNS(null, "x", loopObj.beatApxX + loopObj.lenPx - 20);
+    tSvgImageR.setAttributeNS(XLINK_NS, 'xlink:href', NOTATION_FILE_NAME_PATH + 'rightBracket.svg');
+    tSvgImageR.setAttributeNS(null, "y", ty2 - 15);
+    tSvgImageR.setAttributeNS(null, "x", tx2 - 16);
     tSvgImageR.setAttributeNS(null, "visibility", 'visible');
     tSvgImageR.setAttributeNS(null, "display", 'yes');
     canvas.svg.appendChild(tSvgImageR);
@@ -454,15 +506,15 @@ function makeLoopBrackets() {
 }
 
 function updateLoops(frame, loopIx) {
-  let tx = loops[loopIx].frameArray[frame].x;
-  let ty = loops[loopIx].frameArray[frame].y;
+  let tx = loopsFrameArray[loopIx][frame].x;
+  let ty = loopsFrameArray[loopIx][frame].y;
   loopCursors[loopIx].setAttributeNS(null, 'x1', tx);
   loopCursors[loopIx].setAttributeNS(null, 'x2', tx);
   loopCursors[loopIx].setAttributeNS(null, 'y1', ty);
   loopCursors[loopIx].setAttributeNS(null, 'y2', ty + scrollingCsrH);
   //bbs
-  let tbx = loops[loopIx].frameArray[frame].x;
-  let tby = loops[loopIx].frameArray[frame].bby;
+  let tbx = loopsFrameArray[loopIx][frame].x;
+  let tby = loopsFrameArray[loopIx][frame].bby;
   loopBbs[loopIx].setAttributeNS(null, 'cx', tbx);
   loopBbs[loopIx].setAttributeNS(null, 'cy', tby);
 }
